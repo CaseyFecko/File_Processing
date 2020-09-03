@@ -1,79 +1,68 @@
 import csv
+import pandas as pd
+import sys, getopt
+import argparse
 
-'''
-INPUTS:
-'''
-new_name = #File name for new phenotype file, with .csv extention
-both_loc = #Location of csv file with two columns,the sample name
-           #in the first and respective cell type in the second
-rpkm_loc = #Location of gene expression data in rpkm format, the file
-           #to be input into
+### Example uses
+parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+    description='Combine counts files for individual samples into a compiled counts matrix.',
+    epilog='''
+    Example usage: python Phenotype_creator.py -R RPKM.txt -CT cell_type.txt --output_prefix ./Pheno_matrix
+                    OR
+                python Phenotype_creator.py -R RPKM.csv -CT cell_type.csv
+    ''')
+optional = parser._action_groups.pop() # Edited this line
+requiredNamed = parser.add_argument_group('Required arguments')
+requiredNamed.add_argument('-R','--rpkm',type=str, help='RPKM file (describe structure more here). Tab-delimited (.txt) or comma-seperated (.csv) text files are accepted',dest='r',required=True)
+requiredNamed.add_argument('-CT','--cell_type',type=str, help='csv file with two columns,the sample name in the first and respective cell type in the second',dest='ct',required=True)
+optional.add_argument('-OUT','--output_prefix',type=str, help='File name prefix for resulting phenotype file. ".txt" is automatically added',dest='out')
+parser._action_groups.append(optional) # added this line
+args = parser.parse_args()
 
+# Define variables from argument list
+rpkm = args.r
+ct = args.ct
+if args.out is not None:
+    outfile = args.out
+else:
+    outfile = "./Phenotype_matrix"
 
-both = open(both_loc).read()
-print (both)
-pre_dict = both.split()
+# rpkm="./test/GSE125197_rpkm_minimal.txt"
+# ct="./test/metadata_example.csv"
+# python Phenotype_Creator.py -R ./test/GSE125197_rpkm_minimal.txt -CT ./test/metadata_example.csv --output_prefix ./P_mat
 
+if ct.split(".")[-1] == "txt":
+    both = pd.read_csv(ct,header=0,sep='\t')
+elif ct.split(".")[-1] == "csv":
+    both = pd.read_csv(ct,header=0,sep=',')
 
-sample_to_cell = {}
+if rpkm.split(".")[-1] == "txt":
+    rpkm = pd.read_csv(rpkm,header=0,sep='\t')
+elif rpkm.split(".")[-1] == "csv":
+    rpkm = pd.read_csv(rpkm,header=0,sep=',')
 
-#creates dictionary of samples to the type of cell they consist of
-for x in range(len(pre_dict)):
-    if x%2==0:
-        #print('x: ' + pre_dict[x])
-        #print('x+1: ' + pre_dict[x+1])
-        #print('first')
-        #print(x/2)
-        sample_to_cell[pre_dict[x]] = pre_dict[x+1]
+#Format RPKM columns
+new_columns = [x.strip() for x in rpkm.columns.values]; new_columns[0] = "gene_id"; rpkm.columns  = new_columns
+# Extract RPKM columns
+cs = rpkm.columns.values[1:]
+both_cols = both.columns.values
+# Identify unique cell types 
+cell_types = both[both_cols[1]].unique()
+# Generate matrix
+w=len(cs)
+h=len(cell_types)
 
-cell_to_sample = {}
+df = pd.DataFrame([[2 for x in range(w)] for y in range(h)])
+df.columns = cs
+df.set_index(cell_types,inplace=True) 
 
-#creates dictionary of samples to the type of cell they consist of
-for x in range(len(pre_dict)):
-    if x%2==0:
-        #print('x: ' + pre_dict[x])
-        #print('x+1: ' + pre_dict[x+1])
-        #print('second')
-        #print(x/2)
-        cell_to_sample[pre_dict[x+1]] = pre_dict[x]
+both_sub=both[both[both_cols[0]].isin(cs)]
 
-#print(cell_to_sample.keys())
-print(list(cell_to_sample.keys()))
-types = list(cell_to_sample.keys())
-h = len(types)
-#print (types)
+for i, val in both_sub.iterrows():
+    # print(i)
+    # print(val[1]+"; "+val[0])
+    df.loc[val[1],val[0]] = 1
 
-rpkm = open(rpkm_loc).read()
-pre_dict = rpkm.split('\n')
-sample = pre_dict[0]
-samples = sample.split()[1:]c
-w = len(samples)
+file_name = outfile+".txt"
+df.to_csv(file_name,sep="\t",index=True)
 
-
-#creates matrix of the correct size with '2' in all locations
-Matrix = [[2 for x in range(w+1)] for y in range(h+1)]
-
-
-#adjusts matrix so that a location has a '1' if it matches a sample with the correct cell type
-for x in range(len(samples)+1):
-    if x != 0:
-        Matrix[0][x] = samples[x-1]
-    else:
-        Matrix[0][x] = "Type"
-
-for x in range(len(types)+1):
-    if x != 0:
-        Matrix[x][0] = types[x-1]
-
-for h in range(1,len(types)+1):
-    for w in range(1,len(samples)+1):
-        print('Matrix[0][w]' + Matrix[0][w])
-        print('Matrix[h][0]' + Matrix[h][0])
-        if sample_to_cell[Matrix[0][w]]==Matrix[h][0]:
-            print('yes')
-            Matrix[h][w] = 1
-
-#converts matrix to .csv file named Phenotype_Matrix.csv
-with open(new_name, 'w', newline='\n') as csvfile:
-    writer = csv.writer(csvfile, delimiter='\t')
-    writer.writerows(Matrix)
