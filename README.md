@@ -17,10 +17,9 @@ The 16th line skips any lines that are not wanted to be carried over from the in
 
 
 Phenotype_Creator:
-Creates a phenotype file for Cibersort with three input files
+Creates a phenotype file for Cibersort with two input files
 In the file created uses a 1 to denote the matches and a 2 for every other location. 
 
-Change the type_loc, sample_loc, and both_loc to reflect the three files needed.
-The type_loc file should be a csv file with one column, a list of the different cell types in the dataset.
-The sample_loc file should be a csv file with one column, a list of the samples in the dataset.
+Change the both_loc and rpkm_loc to reflect the two files needed and the new_name to reflect the name of the phenotype file you want.
 The both_loc file should be a csv file with two columns, the sample name in the first and respective cell type in the second.
+The rpkm_loc file should be a csv file in rpkm format of the gene expression data that is intended to be used with cibersort. This is used to get the sample list in the indended order.
