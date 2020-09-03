@@ -33,6 +33,5 @@ In the file created uses a 1 to denote the matches and a 2 for every other locat
                     OR
                 python Phenotype_creator.py -R RPKM.csv -CT cell_type.csv
 
-Change the type_loc, sample_loc, and both_loc to reflect the three files needed.
 The rpkm file should be a csv tab-separated txt file.
 The cell type file should be a csv or tab-separated txt file with a header and two columns, the sample name in the first and respective cell type in the second.
